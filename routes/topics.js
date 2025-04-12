@@ -244,7 +244,9 @@ router.delete('/:id', authenticateJWT, async (req, res) => {
     }
     
     await News.deleteMany({ topic: topic._id });
-    
+    const user = await User.findById(req.user.id)
+    user.totalTopic -= 1
+    await user.save()
     await Topic.findByIdAndDelete(topic._id);
     
     res.json({
