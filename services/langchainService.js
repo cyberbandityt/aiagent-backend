@@ -21,6 +21,7 @@ const createTopicChatModel = async (topicId, chatHistory = []) => {
     
     const recentNews = await News.find({ topic: topicId })
       .sort({ publishedAt: -1 })
+      .limit(10)
       .select('title summary publishedAt sentiment.label content description');
     
     const newsContext = recentNews.map(news => 
@@ -95,6 +96,7 @@ const sendMessageToTopicChat = async (topicId, message, chatHistory = []) => {
     
     const latestNews = await News.find({ topic: topicId })
       .sort({ publishedAt: -1 })
+      .limit(10)
       .select('title summary url publishedAt content description');
     
     const chain = await createTopicChatModel(topicId, chatHistory);

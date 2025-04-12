@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateJWT } = require('../middleware/auth');
 const Topic = require('../models/Topic');
+const User = require('../models/User')
 const News = require('../models/News');
 const { createNewsScrapingSchedule, stopNewsScrapingSchedule } = require('../config/scheduler');
 const newsService = require('../services/newsService');
@@ -12,7 +13,14 @@ const newsService = require('../services/newsService');
 router.post('/', authenticateJWT, async (req, res) => {
   try {
     const { name, keywords, description } = req.body;
-    
+    const user = await User.findById(req.user.id)
+
+    if (user.totalTopic >= 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Topic limit reached. Please delete an existing topic to create a new one.'
+      });
+    }
     const existingTopic = await Topic.findOne({ 
       name: { $regex: new RegExp(`^${name}$`, 'i') },
       user: req.user.id 
@@ -45,7 +53,8 @@ router.post('/', authenticateJWT, async (req, res) => {
         }
       }
     const scheduleResult = await createNewsScrapingSchedule(topic._id.toString(), topic.name);
-    
+    user.totalTopic += 1
+    await user.save()
     if (scheduleResult.success) {
       topic.scheduleId = scheduleResult.scheduleId;
       await topic.save();
