@@ -40,7 +40,7 @@ const createTopicChatModel = async (topicId, chatHistory = []) => {
     
     const model = new ChatAnthropic({
       anthropicApiKey: process.env.ANTHROPIC_KEY,
-      modelName: "claude-3-5-haiku-20240307",
+      modelName: "claude-3-haiku-20240307",
       temperature: 0.7
     });
     
