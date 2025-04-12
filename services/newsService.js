@@ -19,27 +19,30 @@ const fetchNewsForTopic = async (topicId) => {
       };
     }
     
-    let searchQuery = topic.name;
+    let searchTerms = [topic.name];
+    
     if (topic.keywords && topic.keywords.length > 0) {
-      searchQuery += ` OR ${topic.keywords.join(' OR ')}`;
+      searchTerms = searchTerms.concat(topic.keywords);
     }
     
+    const searchQuery = `(${searchTerms.join(' OR ')})`;
+    
     const from = new Date();
-    from.setHours(from.getHours() - 24);
+    from.setDate(from.getDate() - 7);
     const fromDate = from.toISOString().split('T')[0];
     
     const params = {
-      q: searchQuery,
+      q: encodeURIComponent(searchQuery), 
       from: fromDate,
-      sortBy: 'publishedAt',
-      language: 'en',
+      sortBy: 'popularity',
       apiKey: NEWS_API_KEY,
-      pageSize: 20
+      pageSize: 20,
+
     };
     
     const response = await axios.get(NEWS_API_URL, { params });
     
-    if (!response.data || !response.data.articles) {
+    if (!response.data || !response.data.articles || response.data.articles.length === 0) {
       return {
         success: false,
         message: 'No articles found'
@@ -52,38 +55,41 @@ const fetchNewsForTopic = async (topicId) => {
     let processedArticlesCount = 0;
     
     for (const article of articles) {
+      if (!article.title || !article.url) {
+        processedArticlesCount++;
+        continue;
+      }
+      
       const existingArticle = await News.findOne({
         topic: topicId,
         url: article.url
       });
       
       if (existingArticle) {
+        processedArticlesCount++;
         continue;
       }
       
       try {
-        const contentForAnalysis = article.description || article.title || article.content;
-        const truncatedContent = contentForAnalysis.substring(0, 8000); // Claude has token limits
-        
-        const [sentimentResult] = await Promise.all([
-          claudeService.analyzeSentiment(truncatedContent),
-        ]);
+        const contentForAnalysis = `Title: ${article.title } Description: ${article.description} Content: ${article.content}`;
+        const truncatedContent = contentForAnalysis.substring(0, 8000); 
+        const sentimentResult = await claudeService.analyzeSentiment(truncatedContent);
         
         const newsArticle = new News({
           topic: topicId,
           title: article.title,
-          description: article.description,
-          content: article.content,
+          description: article.description || '',
+          content: article.content || '',
           url: article.url,
           source: {
-            name: article.source.name,
-            url: article.source.url || null
+            name: article.source?.name || 'Unknown',
+            url: article.source?.url || null
           },
-          publishedAt: new Date(article.publishedAt),
+          publishedAt: article.publishedAt ? new Date(article.publishedAt) : new Date(),
           sentiment: {
-            score: sentimentResult.score,
-            magnitude: sentimentResult.magnitude,
-            label: sentimentResult.label
+            score: sentimentResult.score || 0,
+            magnitude: sentimentResult.magnitude || 0,
+            label: sentimentResult.label || 'neutral'
           },
           keywords: sentimentResult.keywords || []
         });
@@ -91,19 +97,21 @@ const fetchNewsForTopic = async (topicId) => {
         await newsArticle.save();
         newArticlesCount++;
       } catch (error) {
-
-    }
-      if (newArticlesCount >= 3) {
-        try {
-          const summaryService = require('./summaryService');
-          
-          summaryService.generateTopicSummary(topicId)
-            .catch(err => console.error('Error updating topic summary after scraping:', err));
-          
-        } catch (error) {
-        }
+        console.error(`Error processing article "${article.title}":`, error.message);
       }
+      
       processedArticlesCount++;
+    }
+    
+    if (newArticlesCount >= 3) {
+      try {
+        const summaryService = require('./summaryService');
+        summaryService.generateTopicSummary(topicId)
+          .catch(err => console.error('Error updating topic summary after scraping:', err));
+        
+      } catch (error) {
+        console.error('Error initializing summary service:', error.message);
+      }
     }
     
     await Topic.findByIdAndUpdate(topicId, { updatedAt: new Date() });
@@ -111,9 +119,11 @@ const fetchNewsForTopic = async (topicId) => {
     return {
       success: true,
       newArticles: newArticlesCount,
-      processedArticles: processedArticlesCount
+      processedArticles: processedArticlesCount,
+      totalArticles: articles.length
     };
   } catch (error) {
+    console.error('Error in fetchNewsForTopic:', error);
     return {
       success: false,
       error: error.message
