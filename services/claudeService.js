@@ -35,13 +35,13 @@ const analyzeSentiment = async (text) => {
     `;
     
     const response = await claude.messages.create({
-      model: "claude-3-opus-20240229",
+      model: "claude-3-5-haiku-20240307",
       max_tokens: 1000,
       temperature: 0.0,
       messages: [
-        { role: "user", content: prompt }
+          { role: "user", content: prompt }
       ]
-    });
+  });
     
     const jsonMatch = response.content[0].text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
@@ -80,13 +80,14 @@ const summarizeText = async (text) => {
     `;
     
     const response = await claude.messages.create({
-      model: "claude-3-haiku-20240307",
+      model: "claude-3-5-haiku-20240307",
       max_tokens: 500,
       temperature: 0.0,
       messages: [
-        { role: "user", content: prompt }
+          { role: "user", content: prompt }
       ]
-    });
+  });
+    
     
     // Parse JSON from Claude's response
     const jsonMatch = response.content[0].text.match(/\{[\s\S]*\}/);
@@ -156,13 +157,13 @@ const generateTopicSummary = async (topicName, recentNews, sentimentData) => {
       `;
       
       const response = await claude.messages.create({
-        model: "claude-3-opus-20240229",
-        max_tokens: 2000,
+        model: "claude-3-5-haiku-20240307",
+        max_tokens: 1000,
         temperature: 0.1,
         messages: [
-          { role: "user", content: prompt }
+            { role: "user", content: prompt }
         ]
-      });
+    });
       
       const jsonMatch = response.content[0].text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
