@@ -27,9 +27,6 @@ const NewsSchema = new mongoose.Schema({
   publishedAt: {
     type: Date
   },
-  summary: {
-    type: String
-  },
   sentiment: {
     score: Number, 
     magnitude: Number,

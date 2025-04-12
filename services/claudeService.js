@@ -112,7 +112,7 @@ const summarizeText = async (text) => {
 const generateTopicSummary = async (topicName, recentNews, sentimentData) => {
     try {
       const newsContent = recentNews.map(news => 
-        `Title: ${news.title}\nSummary: ${news.summary}\nSentiment: ${news.sentiment.label} (${news.sentiment.score})\nDate: ${new Date(news.publishedAt).toISOString().split('T')[0]}\n`
+        `Title: ${news.title}\nSentiment: ${news.sentiment.label} (${news.sentiment.score})\nDate: ${new Date(news.publishedAt).toISOString().split('T')[0]}\n`
       ).join('\n---\n');
       
       const sentimentContext = `

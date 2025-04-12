@@ -185,7 +185,6 @@ router.get('/search/:topicId', authenticateJWT, async (req, res) => {
           { title: { $regex: query, $options: 'i' } },
           { description: { $regex: query, $options: 'i' } },
           { content: { $regex: query, $options: 'i' } },
-          { summary: { $regex: query, $options: 'i' } },
           { keywords: { $regex: query, $options: 'i' } }
         ]
       }
@@ -200,7 +199,6 @@ router.get('/search/:topicId', authenticateJWT, async (req, res) => {
         { title: { $regex: query, $options: 'i' } },
         { description: { $regex: query, $options: 'i' } },
         { content: { $regex: query, $options: 'i' } },
-        { summary: { $regex: query, $options: 'i' } },
         { keywords: { $regex: query, $options: 'i' } }
       ]
     });

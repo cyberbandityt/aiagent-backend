@@ -22,10 +22,10 @@ const createTopicChatModel = async (topicId, chatHistory = []) => {
     const recentNews = await News.find({ topic: topicId })
       .sort({ publishedAt: -1 })
       .limit(10)
-      .select('title summary publishedAt sentiment.label content description');
+      .select('title publishedAt sentiment.label content description');
     
     const newsContext = recentNews.map(news => 
-      `- [${news.publishedAt.toISOString().split('T')[0]}] ${news.title}: ${news.summary} (Sentiment: ${news.sentiment.label}) (Content: ${news.content} (Description: ${news.description}) `
+      `- [${news.publishedAt.toISOString().split('T')[0]}] ${news.title}: (Sentiment: ${news.sentiment.label}) (Content: ${news.content} (Description: ${news.description}) `
     ).join('\n');
     
     const systemPrompt = `
@@ -97,12 +97,12 @@ const sendMessageToTopicChat = async (topicId, message, chatHistory = []) => {
     const latestNews = await News.find({ topic: topicId })
       .sort({ publishedAt: -1 })
       .limit(10)
-      .select('title summary url publishedAt content description');
+      .select('title url publishedAt content description');
     
     const chain = await createTopicChatModel(topicId, chatHistory);
     
     const newsContext = latestNews.map(news => 
-      `[News from ${news.publishedAt.toISOString().split('T')[0]}]: ${news.title} - ${news.summary} -(Content: ${news.content}) (Description: ${news.description}) `
+      `[News from ${news.publishedAt.toISOString().split('T')[0]}]: ${news.title} -(Content: ${news.content}) (Description: ${news.description}) `
     ).join('\n');
     
     const enhancedMessage = `

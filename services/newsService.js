@@ -62,12 +62,11 @@ const fetchNewsForTopic = async (topicId) => {
       }
       
       try {
-        const contentForAnalysis = article.content || article.description || article.title;
+        const contentForAnalysis = article.description || article.title || article.content;
         const truncatedContent = contentForAnalysis.substring(0, 8000); // Claude has token limits
         
-        const [sentimentResult, summaryResult] = await Promise.all([
+        const [sentimentResult] = await Promise.all([
           claudeService.analyzeSentiment(truncatedContent),
-          claudeService.summarizeText(truncatedContent)
         ]);
         
         const newsArticle = new News({
@@ -81,7 +80,6 @@ const fetchNewsForTopic = async (topicId) => {
             url: article.source.url || null
           },
           publishedAt: new Date(article.publishedAt),
-          summary: summaryResult.summary,
           sentiment: {
             score: sentimentResult.score,
             magnitude: sentimentResult.magnitude,
