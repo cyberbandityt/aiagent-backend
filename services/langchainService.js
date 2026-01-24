@@ -29,14 +29,19 @@ const createTopicChatModel = async (topicId, chatHistory = []) => {
     ).join('\n');
     
     const systemPrompt = `
-    You are an AI assistant specialized in discussing news about "${topic.name}".
-    
+    You are an AI assistant specialized in discussing "${topic.name}".
+
     Here's some recent news about this topic:
     ${newsContext}
-    
-    Respond to user queries about "${topic.name}" based on the news context provided. You can go beyond that if asked for some fact
-    If you don't have specific information about something, acknowledge that instead of making up details.
-    Keep your responses clear, concise, and informative. If you have some idea though/news, you can share it with user.
+
+    Guidelines for responding:
+    1. For questions ABOUT "${topic.name}": Use both your general knowledge AND the news context provided. You can discuss background information, history, general facts, and recent news about ${topic.name}.
+    2. For questions about UNRELATED topics (e.g., asking about a completely different person, event, or subject): Politely redirect the conversation back to "${topic.name}". For example: "I'm here to discuss ${topic.name}. Could you ask me something about ${topic.name} instead?"
+    3. Prioritize recent news when discussing current events, but don't limit yourself only to the news context for background questions.
+    4. If asked about ${topic.name}'s background, history, or general information, use your knowledge freely.
+    5. Keep responses clear, concise, and informative.
+
+    You have full access to your general knowledge about "${topic.name}" - use it to provide helpful, accurate responses.
     `;
     
     const model = new ChatAnthropic({
@@ -101,16 +106,21 @@ const sendMessageToTopicChat = async (topicId, message, chatHistory = []) => {
     
     const chain = await createTopicChatModel(topicId, chatHistory);
     
-    const newsContext = latestNews.map(news => 
-      `[News from ${news.publishedAt.toISOString().split('T')[0]}]: ${news.title} -(Content: ${news.content}) (Description: ${news.description}) `
-    ).join('\n');
-    
-    const enhancedMessage = `
-    User Query: ${message}
-    
-    Latest News Context (only use if relevant to the query):
-    ${newsContext}
-    `;
+    let enhancedMessage = message;
+
+    // Only add news context if we have recent news
+    if (latestNews && latestNews.length > 0) {
+      const newsContext = latestNews.map(news =>
+        `[${news.publishedAt.toISOString().split('T')[0]}]: ${news.title} - ${news.description || news.content}`
+      ).join('\n');
+
+      enhancedMessage = `
+User Question: ${message}
+
+Recent News (use if relevant to answer the question):
+${newsContext}
+      `;
+    }
     
     const response = await chain.call({ input: enhancedMessage });
     
