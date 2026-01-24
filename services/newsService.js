@@ -19,32 +19,42 @@ const fetchNewsForTopic = async (topicId) => {
       };
     }
     
-    let searchTerms = [topic.name];
-    
-    if (topic.keywords && topic.keywords.length > 0) {
-      searchTerms = searchTerms.concat(topic.keywords);
+    // Format the main topic name - require it with + operator for exact matching
+    let mainTopic = topic.name;
+    if (mainTopic.includes(' ')) {
+      mainTopic = `+"${mainTopic}"`;
+    } else {
+      mainTopic = `+${mainTopic}`;
     }
-    
-    const formattedTerms = searchTerms.map(term => {
-      if (term.includes(' ') && !term.startsWith('"')) {
-        return `"${term}"`;
-      }
-      return term;
-    });
-    
-    const searchQuery = `(${formattedTerms.join(' OR ')})`;
-    
+
+    let searchQuery = mainTopic;
+
+    // If keywords exist, require at least one keyword to match (provides context)
+    // This ensures we get relevant results for the specific context
+    if (topic.keywords && topic.keywords.length > 0) {
+      const formattedKeywords = topic.keywords.map(keyword => {
+        if (keyword.includes(' ')) {
+          return `"${keyword}"`;
+        }
+        return keyword;
+      });
+
+      // Use AND with OR group: topic name must appear AND at least one keyword must appear
+      searchQuery += ` AND (${formattedKeywords.join(' OR ')})`;
+    }
+
     const from = new Date();
     from.setDate(from.getDate() - 7);
     const fromDate = from.toISOString().split('T')[0];
-    
+
     const params = {
       q: searchQuery,
       from: fromDate,
       sortBy: 'relevancy',
       language: 'en',
       apiKey: NEWS_API_KEY,
-      pageSize: 20
+      pageSize: 20,
+      searchIn: 'title,description,content'
     };
     
     const response = await axios.get(NEWS_API_URL, { params });
